@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Calcolatore Tasso Alcolemico Avanzato</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 650px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        h1 {
+            color: #2e8b57;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #2e8b57;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #2e8b57;
+            color: white;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin: 5px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 18px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: goldenrod;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-left: 5px solid #2e8b57;
+            display: none;
+            border-radius: 4px;
+        }
+        .error {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffa000;
+            font-weight: bold;
+        }
+        .info {
+            color: #1976d2;
+        }
+        .success {
+            color: #388e3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calcolatore del Tasso Alcolemico Avanzato</h1>
+    
+    <table>
+        <tr>
+            <th colspan="2">Dati personali</th>
+        </tr>
+        <tr>
+            <td width="40%">Sesso</td>
+            <td>
+                <select id="sesso">
+                    <option value="0.70">Maschio</option>
+                    <option value="0.60">Femmina</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Peso (kg)</td>
+            <td><input type="number" id="peso" min="40" max="200" required></td>
+        </tr>
+        
+        <tr>
+            <th colspan="2">Consumo alcolico</th>
+        </tr>
+        <tr>
+            <td>Tipo di bevanda</td>
+            <td>
+                <select id="bevanda">
+                    <option value="1">Birra leggera (4-5°)</option>
+                    <option value="2">Birra forte (6-8°)</option>
+                    <option value="3">Vino (12-13°)</option>
+                    <option value="4">Superalcolico (40°)</option>
+                    <option value="5">Altro (specifica grammi)</option>
+                </select>
+            </td>
+        </tr>
+        <tr id="quantitaRow">
+            <td>Quantità consumata</td>
+            <td>
+                <input type="number" id="quantita" min="0" step="1" required>
+                <select id="unita">
+                    <option value="1">Bottiglie (33cl)</option>
+                    <option value="2">Bicchieri (12cl)</option>
+                    <option value="3">Shot (4cl)</option>
+                    <option value="4">Grammi</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Stomaco</td>
+            <td>
+                <select id="stomaco">
+                    <option value="0.9">Pieno (assorbimento lento)</option>
+                    <option value="1.0">Medio (dopo uno spuntino)</option>
+                    <option value="1.2">Vuoto (assorbimento rapido)</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>Tempo dall'assunzione (ore)</td>
+            <td><input type="number" id="ore" min="0" step="0.5" required></td>
+        </tr>
+    </table>
+    
+    <button onclick="calcolaTassoAlcolemico()">Calcola Tasso Alcolemico</button>
+    
+    <div id="result"></div>
+
+    <script>
+        // Conversione delle bevande in grammi di alcol puro
+        const bevandeAlcoliche = {
+            "1": 12,   // Birra leggera (33cl a 5°)
+            "2": 18,   // Birra forte (33cl a 7°)
+            "3": 30,   // Vino (12cl a 12.5°)
+            "4": 12    // Superalcolico (4cl a 40°)
+        };
+        
+        // Fattori di conversione per unità di misura
+        const conversioniUnita = {
+            "1": 1,    // Bottiglie (già calcolato per 33cl)
+            "2": 0.36, // Bicchieri (12cl rispetto a 33cl)
+            "3": 0.12, // Shot (4cl rispetto a 33cl)
+            "4": 1     // Grammi (uso diretto)
+        };
+
+        function calcolaTassoAlcolemico() {
+            // Recupero dei valori
+            const coefficiente = parseFloat(document.getElementById('sesso').value);
+            const peso = parseFloat(document.getElementById('peso').value);
+            const tipoBevanda = document.getElementById('bevanda').value;
+            const quantita = parseFloat(document.getElementById('quantita').value);
+            const unita = document.getElementById('unita').value;
+            const stomaco = parseFloat(document.getElementById('stomaco').value);
+            const ore = parseFloat(document.getElementById('ore').value);
+            
+            // Validazione
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            
+            if (isNaN(peso) || peso < 40 || peso > 200) {
+                mostraErrore("Inserisci un peso valido (tra 40 e 200 kg)");
+                return;
+            }
+            
+            if (isNaN(quantita) || quantita <= 0) {
+                mostraErrore("Inserisci una quantità valida");
+                return;
+            }
+            
+            if (isNaN(ore) || ore < 0) {
+                mostraErrore("Inserisci un tempo valido");
+                return;
+            }
+            
+            // Calcolo grammi di alcol puro consumato
+            let alcol;
+            if (tipoBevanda === "5") {
+                // Modalità "Altro" - usa direttamente i grammi
+                if (unita !== "4") {
+                    mostraErrore("Per 'Altro' seleziona 'Grammi' come unità di misura");
+                    return;
+                }
+                alcol = quantita;
+            } else {
+                // Calcola in base al tipo di bevanda e unità di misura
+                alcol = bevandeAlcoliche[tipoBevanda] * quantita * conversioniUnita[unita];
+            }
+            
+            // Calcolo tasso alcolemico (formula di Widmark modificata)
+            const tasso = (alcol / (peso * coefficiente)) * stomaco - (ore * 0.15);
+            const tassoFinale = Math.max(0, tasso).toFixed(3);
+            
+            // Mostra risultato
+            resultDiv.style.display = 'block';
+            
+            if (tassoFinale <= 0) {
+                resultDiv.innerHTML = "<p class='success'>Tasso alcolemico: <strong>0.000 g/l</strong></p>" +
+                                     "<p>Non è rilevabile alcol nel sangue.</p>";
+            } else {
+                resultDiv.innerHTML = `<p>Tasso alcolemico stimato: <strong>${tassoFinale} g/l</strong></p>`;
+                
+                // Informazioni aggiuntive
+                if (tassoFinale > 0.5) {
+                    resultDiv.innerHTML += `<p class="error">ATTENZIONE: Superato il limite legale per la guida (0.5 g/l)</p>`;
+                } else if (tassoFinale > 0.24) {
+                    resultDiv.innerHTML += `<p class="warning">Sei sotto il limite legale ma potresti essere multabile (0.24-0.5 g/l)</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p class="success">Sei ampiamente sotto il limite legale per la guida (<0.24 g/l)</p>`;
+                }
+                
+                // Tempi di smaltimento approssimativo
+                const oreSobrio = (tassoFinale / 0.15).toFixed(1);
+                resultDiv.innerHTML += `<p class="info">Tempo stimato per smaltimento completo: circa ${oreSobrio} ore</p>`;
+                
+                // Dettaglio consumo
+                resultDiv.innerHTML += `<p>Hai consumato circa ${alcol.toFixed(1)} grammi di alcol puro</p>`;
+            }
+        }
+        
+        function mostraErrore(messaggio) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `<p class="error">${messaggio}</p>`;
+        }
+        
+        // Gestione cambio tipo bevanda
+        document.getElementById('bevanda').addEventListener('change', function() {
+            const tipoBevanda = this.value;
+            const unitaSelect = document.getElementById('unita');
+            
+            if (tipoBevanda === "5") {
+                // Se selezionato "Altro", mostra solo grammi
+                unitaSelect.innerHTML = '<option value="4">Grammi</option>';
+            } else {
+                // Altrimenti mostra tutte le opzioni
+                unitaSelect.innerHTML = `
+                    <option value="1">Bottiglie (33cl)</option>
+                    <option value="2">Bicchieri (12cl)</option>
+                    <option value="3">Shot (4cl)</option>
+                    <option value="4">Grammi</option>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
